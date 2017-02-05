@@ -21,7 +21,9 @@ use error::Result;
 use config::Config;
 use logging::Logger;
 
-use serenity::client::Client;
+use serenity::client;
+use serenity::client::{Client, ClientError};
+use serenity::Error;
 
 fn main() {
     std::process::exit(match actual_main() {
@@ -37,6 +39,17 @@ fn actual_main() -> Result<()> {
     // todo: add commands
     Logger::init()?;
     let config = Config::from_file("config.json")?;
+    match client::validate_token(&config.token) {
+        Ok(()) => {},
+        Err(Error::Client(ClientError::InvalidToken)) => {
+            error!("Error when validating token, please ensure you are using a valid bot token.");
+            std::process::exit(1)
+        },
+        Err(why) => {
+            error!("Unexpected error: {:?}", why);
+            std::process::exit(1)
+        }
+    }
     let mut client = Client::login_bot(&config.token);
     client.on_guild_member_add(events::on_member_join);
     client.start()?;
